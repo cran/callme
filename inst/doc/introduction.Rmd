@@ -1,0 +1,174 @@
+---
+title: "Introduction"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Introduction}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+knitr::knit_engines$set(callme = callme:::callme_engine)
+library(callme)
+```
+
+```{css, echo=FALSE}
+.callme         { background-color: #E3F2FD; }
+pre.callme span { background-color: #E3F2FD; }
+```
+
+
+## Introduction
+
+`{callme}` is a package for easily compiling inline C code for use within R.
+
+Complied C code can be used to improve the speed of critical sections of code e.g.
+tight loops of numeric operations.
+
+In this introductory vignette, some common elements are described for C code
+which operates with R objects
+
+## Code Layout in Vignettes
+
+The C code chunks in these vignettes is streamlined for display purposes.
+
+In general when using `{callme}` you must:
+
+1. Define the C code 
+    * in a string (usually called `code` in examples in this package)
+    * in a `.c` file
+2. Call `callme::compile(code)` or `callme::compile("file.c")`
+
+This standard way of compiling the code in R is shown below:
+
+```{r eval=FALSE}
+code <- r"(
+SEXP print_with_c(SEXP string) {
+   Rprintf("Printing in C: '%s'\n", CHAR(asChar(string)));
+   return R_NilValue;
+}
+)"
+
+callme::compile(code, invisible = TRUE)
+print_with_c("hello")
+```
+
+In order to focus on the actual C code (with C code syntax highlighting), 
+C code will simply be shown in a blue box.   Assigning the code to a string, 
+and calling `callme::compile(code)` are hidden by default (`Click to show R code` 
+will reveal this code).
+
+```{callme}
+#| invisible=TRUE
+SEXP print_with_c(SEXP string) {
+   Rprintf("Printing in C: '%s'\n", CHAR(asChar(string)));
+   return R_NilValue;
+}
+```
+
+```{r}
+print_with_c("hello")
+```
+
+
+
+
+## Example: Add two vectors of floating point numbers
+
+The following code adds two vectors of floating point values and returns
+the result (i.e. `a + b`).
+
+
+```{callme}
+SEXP add(SEXP a, SEXP b) {
+  
+  // Sanity checks
+  if (length(a) != length(b)) {
+    error("'a' and 'b' must be the same length");
+  }
+  
+  // Get a pointer to the actual numeric data in 'a' and 'b'
+  double *ap = REAL(a);
+  double *bp = REAL(b);
+  
+  // Allocate a new R object 'res' and protect it from garbage collection
+  int N = length(a);
+  SEXP res = PROTECT(allocVector(REALSXP, N));
+  
+  // Get a pointer to the actual numeric data in 'res'
+  double *resp = REAL(res);
+  
+  // Add elements of two arrays in C
+  for (int i = 0; i < N; i++) {
+    resp[i] = ap[i] + bp[i];
+  }
+  
+  // Unwind any protection and return the R result
+  UNPROTECT(1);
+  return res;
+}
+```
+
+
+```{r}
+add(c(1, 2, 3), c(4, 5, 6))
+```
+
+
+## Elements to note in the example
+
+The following elements highlighted here are described in more detail in 
+other vignettes within this package.
+
+###  Function signature
+
+Function signatures must be of the format `SEXP funcname(SEXP arg1, SEXP arg2, ... SEXP argn)`
+
+
+### Sanity checking
+
+There is a much greater need for checking for sane arguments in C compared to 
+R.   In R, an out-of-bounds memory access might only result in an `NA` value, but
+in C such a bad memory access can cause memory corruption and crashes.
+
+In the example above, the lengths of the two input vectors were checked as
+automatic vector recyling does not happen in C like it does in R.
+
+
+### Unpack R objects into C equivalents
+
+All R objects are of type `SEXP` and are a combination of metadata and
+the actual dta useful to C.
+
+The C compatible data must be extraced from the `SEXP` e.g. find the pointer
+to the array of doubles using:
+
+```{callme}
+#| compile = FALSE, headers = FALSE, rcode = FALSE
+double *ap = REAL(a);
+```
+
+### Allocte new R objects within C
+
+New R objects can be created within C using `allocVector()` and related functions.
+
+It is important to `PROTECT()` any R objects created within C - otherwise
+R's garbage collection will consider them unused and try to free the memory 
+in which they store data.
+
+
+### Return object from C to R
+
+The final returned object must also be of type `SEXP`.  This object may
+have been created with a call to `allocVector()` but there are convenience
+functions for creating and returning single values e.g. `ScalarInteger()`
+
+
+
+

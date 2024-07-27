@@ -1,0 +1,115 @@
+---
+title: "External pointers to C objects"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{External pointers to C objects}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+knitr::knit_engines$set(callme = callme:::callme_engine)
+library(callme)
+```
+
+```{css, echo=FALSE}
+.callme         { background-color: #E3F2FD; }
+pre.callme span { background-color: #E3F2FD; }
+```
+
+## Introduction
+
+`External pointers` are a method for keeping a reference to a C 
+object across multiple calls.
+
+A common usecase is when a `struct` in C is used to keep context and this
+context must be initialised once and then passed in to every subsequent
+function call.
+
+## Wrapping a C struct as an External Pointer
+
+```{callme}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// The struct we will allocate and use in multiple calls
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+typedef struct {
+   double *a;
+   int N;
+} cdata_t;
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Finalize struct - free all allocated memory and clear the pointer
+// This will be called by R's garbage collected when the variable 
+// falls out of scope
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void cdata_finalizer(SEXP cdata_) {
+  Rprintf("cdata finalizer called to free the C pointer memory\n");
+  
+  cdata_t *cdata = R_ExternalPtrAddr(cdata_);
+  if (cdata != NULL) {
+    free(cdata->a);
+    free(cdata);
+    R_ClearExternalPtr(cdata_);
+  }
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Allocate and initialise the struct by copying the floating point
+// data in 'values' argument
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP create_cdata(SEXP values) {
+  int N = length(values);
+  cdata_t *cdata = calloc(1, sizeof(cdata_t));
+  if (cdata == NULL) {
+    error("Couldn't allocate 'cdata'");
+  }
+
+  cdata->a = calloc(N, sizeof(double));
+  if (cdata->a == NULL) {
+    error("Couldn't allocate 'cdata->a'");
+  }
+  
+  cdata->N = N;
+  memcpy(cdata->a, REAL(values), N * sizeof(double));
+
+  SEXP cdata_extptr = PROTECT(R_MakeExternalPtr(cdata, R_NilValue, R_NilValue));
+  R_RegisterCFinalizer(cdata_extptr, cdata_finalizer);
+  setAttrib(cdata_extptr, R_ClassSymbol, mkString("cdata_extptr"));
+
+  UNPROTECT(1);
+  return cdata_extptr;
+}
+
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+// Print the struct
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+SEXP print_cdata(SEXP cdata_extptr) {
+  if (!inherits(cdata_extptr, "cdata_extptr")) {
+    error("Expecting 'cdata' to be an 'cdata_extptr' ExternalPtr");
+  }
+
+  cdata_t *cdata = TYPEOF(cdata_extptr) != EXTPTRSXP ? NULL : (cdata_t *)R_ExternalPtrAddr(cdata_extptr);
+  if (cdata == NULL) {
+    error("MyCStruct pointer is invalid/NULL");
+  }
+
+  for (int i = 0; i < cdata->N; i++) {
+    Rprintf("%.2f ", cdata->a[i]);
+  }
+  Rprintf("\n");
+
+  return R_NilValue;
+}
+```
+
+```{r}
+cdata <- create_cdata(c(1, 2, pi))
+cdata
+print_cdata(cdata)
+```
+

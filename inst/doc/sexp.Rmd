@@ -1,0 +1,104 @@
+---
+title: "SEXP objects"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SEXP objects}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+knitr::knit_engines$set(callme = callme:::callme_engine)
+library(callme)
+```
+
+```{css, echo=FALSE}
+.callme         { background-color: #E3F2FD; }
+pre.callme span { background-color: #E3F2FD; }
+```
+
+## SEXP objects
+
+All functions callable from R must return a `SEXP`, and only take arguments 
+which are of type `SEXP` (or just `void` if there are no arguments).
+
+The `SEXP` type is an `S-Expression`.  Every value in R is an `SEXP`, and 
+there is information stored within the type to indicate what data is stored 
+within it.
+
+The `TYPEOF()` macro and `type2char()` function within C will be useful to 
+identify what sort of data is in the SEXP.
+
+
+## Listing of all SEXP types
+
+The full list of `SEXP` types are in [Rinternals.h](https://github.com/wch/r-source/blob/trunk/src/include/Rinternals.h)
+
+```
+#define NILSXP	     0	  /* nil = NULL */
+#define SYMSXP	     1	  /* symbols */
+#define LISTSXP	     2	  /* lists of dotted pairs */
+#define CLOSXP	     3	  /* closures */
+#define ENVSXP	     4	  /* environments */
+#define PROMSXP	     5	  /* promises: [un]evaluated closure arguments */
+#define LANGSXP	     6	  /* language constructs (special lists) */
+#define SPECIALSXP   7	  /* special forms */
+#define BUILTINSXP   8	  /* builtin non-special forms */
+#define CHARSXP	     9	  /* "scalar" string type (internal only)*/
+#define LGLSXP	    10	  /* logical vectors */
+/* 11 and 12 were factors and ordered factors in the 1990s */
+#define INTSXP	    13	  /* integer vectors */
+#define REALSXP	    14	  /* real variables */
+#define CPLXSXP	    15	  /* complex variables */
+#define STRSXP	    16	  /* string vectors */
+#define DOTSXP	    17	  /* dot-dot-dot object */
+#define ANYSXP	    18	  /* make "any" args work.
+			     Used in specifying types for symbol
+			     registration to mean anything is okay  */
+#define VECSXP	    19	  /* generic vectors */
+#define EXPRSXP	    20	  /* expressions vectors */
+#define BCODESXP    21    /* byte code */
+#define EXTPTRSXP   22    /* external pointer */
+#define WEAKREFSXP  23    /* weak reference */
+#define RAWSXP      24    /* raw bytes */
+#define OBJSXP      25    /* object, non-vector  */
+#define S4SXP       25    /* same as OBJSXP, retained for back compatability */
+
+/* used for detecting PROTECT issues in memory.c */
+#define NEWSXP      30    /* fresh node created in new page */
+#define FREESXP     31    /* node released by GC */
+
+#define FUNSXP      99    /* Closure or Builtin or Special */
+```
+
+## Code example: Print the SEXP type of an object
+
+```{callme}
+#| invisible = TRUE
+SEXP what_sexp_is_this(SEXP x) {
+  Rprintf("SEXPTYPE: %i = %s\n", TYPEOF(x), type2char(TYPEOF(x)));
+  return R_NilValue;
+}                
+```
+
+
+```{r}
+what_sexp_is_this(1L)
+what_sexp_is_this(TRUE)
+what_sexp_is_this(c(1.1, 2.2))
+what_sexp_is_this(list(1, 2, 3))
+what_sexp_is_this("hello")
+what_sexp_is_this(mtcars)
+what_sexp_is_this(mean)
+```
+
+
+
+
+
+
