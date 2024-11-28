@@ -1,4 +1,10 @@
 
+# callme 0.1.11
+
+* Fix title in DESCRIPTION for CRAN.  Put 'C' in single quotes.
+* Remove `cflags_default()`
+    * Recommend use of `{maketools}` instead. i.e. `maketools::cc_info()`
+
 # callme 0.1.10 2014-07-23
 
 * Vignettes

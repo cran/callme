@@ -1,7 +1,7 @@
 Type: Package
 Package: callme
-Title: Easily Compile and Call Inline C Functions
-Version: 0.1.10
+Title: Easily Compile and Call Inline 'C' Functions
+Version: 0.1.11
 Authors@R: 
     person("Mike", "Cheng", , "mikefc@coolbutuseless.com", role = c("aut", "cre", "cph"))
 Maintainer: Mike Cheng <mikefc@coolbutuseless.com>
@@ -24,7 +24,7 @@ VignetteBuilder: knitr
 SystemRequirements: Rtools (suitable for the installed R) for Windows,
         Xcode for Mac
 NeedsCompilation: no
-Packaged: 2024-07-23 11:23:38 UTC; mike
+Packaged: 2024-11-28 04:08:52 UTC; mike
 Author: Mike Cheng [aut, cre, cph]
 Repository: CRAN
-Date/Publication: 2024-07-27 16:50:05 UTC
+Date/Publication: 2024-11-28 05:30:01 UTC

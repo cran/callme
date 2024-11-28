@@ -7,15 +7,15 @@ knitr::knit_engines$set(callme = callme:::callme_engine)
 library(callme)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  code <- r"(
-#  SEXP print_with_c(SEXP string) {
-#     Rprintf("Printing in C: '%s'\n", CHAR(asChar(string)));
-#     return R_NilValue;
-#  }
-#  )"
-#  
-#  callme::compile(code, invisible = TRUE)
-#  print_with_c("hello")
+# code <- r"(
+# SEXP print_with_c(SEXP string) {
+#    Rprintf("Printing in C: '%s'\n", CHAR(asChar(string)));
+#    return R_NilValue;
+# }
+# )"
+# 
+# callme::compile(code, invisible = TRUE)
+# print_with_c("hello")
 
 ## -----------------------------------------------------------------------------
 print_with_c("hello")

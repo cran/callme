@@ -16,8 +16,8 @@ call_r_from_c_with_lang2()
 call_r_from_c_with_lang2_named()
 
 ## ----eval = FALSE-------------------------------------------------------------
-#  print(pi , digits = 3)
+# print(pi , digits = 3)
 
 ## ----eval=FALSE---------------------------------------------------------------
-#  call_print_from_c(pi, digits = 3)
+# call_print_from_c(pi, digits = 3)
 
